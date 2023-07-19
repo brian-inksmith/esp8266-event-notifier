@@ -4,20 +4,33 @@
   https://github.com/fwacer/esp8266-event-notifier
   
   Inspired from https://github.com/SensorsIot/Reminder-with-Google-Calender
+  
 */
 
 // INCLUDES // ************************************************************************************************************************
 
 #include <ESP8266WiFi.h> // Preferences -> "Additional Board Manager URLs" -> http://arduino.esp8266.com/stable/package_esp8266com_index.json
-#include "HTTPSRedirect.h" // Download the files HTTPSRedirect.cpp and HTTPSRedirect.h from this library and place them in the project folder: https://github.com/electronicsguy/ESP8266/tree/master/HTTPSRedirect
+#include <DebugMacros.h>
+#include <HTTPSRedirect.h>
 #include "credentials.h" // This contains your wifi credentials, and your secret for your Google Apps Script. See below "#ifndef CREDENTIALS" for more info
+#include <Adafruit_NeoPixel.h>
 
 // DEFINES // *************************************************************************************************************************
 
+
+// Which pin on the Arduino is connected to the NeoPixels?
+#define PIN D4 // On Trinket or Gemma, suggest changing this to 1
+
+// How many NeoPixels are attached to the Arduino?
+#define NUMPIXELS 7 // Popular NeoPixel ring size
+
+// When setting up the NeoPixel library, we tell it how many pixels,
+// and which pin to use to send signals. Note that for older NeoPixel
+// strips you might need to change the third parameter -- see the
+// strandtest example for more information on possible values.
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+
 // Define pins
-#define PIN_RED   D1 // Red anode of the RGB LED. Must be a PWM pin.
-#define PIN_GREEN D2 // Green anode of the RGB LED. Must be a PWM pin.
-#define PIN_BLUE  D3 // Blue anode of the RGB LED. Must be a PWM pin.
 #define PIN_DATA  D5 // Shift register SER
 #define PIN_CLOCK D6 // Shift register SRCLK
 #define PIN_LATCH D7 // Shift register RCLK
@@ -28,7 +41,10 @@
 
 // Define refresh times
 #define RESET_TIME 86400000 // Constant interval on which the ESP resets itself. (1 day in milliseconds)
-#define UPDATE_TIME 1800000 // Constant interval on when to phone home next. (30 minutes in milliseconds)
+#define UPDATE_TIME 60000 // Constant interval on when to phone home next. (30 minutes in milliseconds)
+unsigned long startMillis;
+unsigned long currentMillis;
+const unsigned long period = 300000; 
 
 // GLOBALS // *************************************************************************************************************************
 
@@ -95,75 +111,6 @@ const byte SEVEN_SEGMENT[] = { // Common anode
 };*/
 
 // FUNCTIONS // ***********************************************************************************************************************
-
-void setColourRGB (int r=0, int g=0, int b=0, int delayTime=0){ // range 0-255
-  // analogWrite() initiates a PWM signal to control the brightness of each colour, by modifying the average voltage.
-  // WARNING: The pins used here must be PWM, and this code was written for a NodeMCU microcontroller. In the default
-  //          Arduino libraries, analogWrite()'s second argument ranges from 0-255, not 0-1023 as we are doing here.
-  analogWrite(PIN_RED, r*4); // Multiplying by 4 to change 0-255 to 0-1023 required
-  analogWrite(PIN_GREEN, g*4);
-  analogWrite(PIN_BLUE, b*4);
-  delay(delayTime);
-}
-
-void setColourRGBEvent (int colourIndex){
-                                     // |-------------------------------| (Developer colour table can be found here: https://developers.google.com/apps-script/reference/calendar/event-color )
-  switch(colourIndex){               // | Developer       | User colour | (User colours look different on mobile vs in browser, choosing to use the mobile colours for the RGB colour codes)
-                                     // |-------------------------------|
-    case 1:                          // | PALE_BLUE       | Lavender    |
-    setColourRGB(100,120,255); break;// |-------------------------------|
-    case 2:                          // | PALE_GREEN      | Sage        |
-    setColourRGB( 80,200,  0); break;// |-------------------------------|
-    case 3:                          // | MAUVE           | Grape       |
-    setColourRGB(230,  0,255); break;// |-------------------------------|
-    case 4:                          // | PALE_RED        | Flamingo    |
-    setColourRGB(250, 35, 15); break;// |-------------------------------|
-    case 5:                          // | YELLOW          | Banana      |
-    setColourRGB(255,120,  0); break;// |-------------------------------|
-    case 6:                          // | ORANGE          | Tangerine   |
-    setColourRGB(255, 20,  0); break;// |-------------------------------|
-    case 7:                          // | CYAN            | Peacock     |
-    setColourRGB( 48,168,227); break;// |-------------------------------|
-    case 8:                          // | GRAY            | Graphite    |
-    setColourRGB(172,178,120); break;// |-------------------------------|
-    case 9:                          // | BLUE            | Blueberry   |
-    setColourRGB(  0,  0,255); break;// |-------------------------------|
-    case 10:                         // | GREEN           | Basil       |
-    setColourRGB(  0,255,  0); break;// |-------------------------------|
-    case 11:                         // | RED             | Tomato      |
-    setColourRGB(255,  0,  0); break;// |-------------------------------|
-    default:
-    setColourRGB(  0,  0,  0); // Turn off LED, we have an invalid event colour
-    Serial.println("Invalid event colour.");
-  }
-  Serial.println("Event colour: "+String(colourIndex));
-}
-
-void rainbow(int secondsPerCycle){ // Goes through the rainbow on the RGB LED in the given amount of time
-  int delayTime = round(secondsPerCycle*1000/6/1023); // Set the delay so that we finish in the number of seconds given
-  int r = 255;
-  int g = 0;
-  int b = 0;
-  for(g=0; g<255; g++){
-    setColourRGB(r,g,b, delayTime); // Red -> Yellow
-  }
-  for(r=255; r>0; r--){
-    setColourRGB(r,g,b, delayTime); // Yellow -> Green
-  }
-  for(b=0; b<255; b++){
-    setColourRGB(r,g,b, delayTime); // Green -> Light Blue
-  }
-  for(g=255; g>0; g--){
-    setColourRGB(r,g,b, delayTime); // Light Blue -> Dark Blue
-  }
-  for(r=0; r<255; r++){
-    setColourRGB(r,g,b, delayTime); // Dark Blue -> Magenta
-  }
-  for(b=255; b>0; b--){
-    setColourRGB(r,g,b, delayTime); // Magenta -> Red
-  }
-  setColourRGB(0,0,0, 0);
-}
 
 void displaySevenSegment(unsigned int data){ // Format of 32-bit binary number: 0b[8-bit MSB Hour][8-bit LSB Hour][8-bit MSB Minute][8-bit LSB Minute]
   if (CURRENT_DISPLAY == data) return; // Don't bother running if the display hasn't changed
@@ -234,9 +181,9 @@ void displayError(int delayTime = 1000){ // Shows on the seven segment display "
   data = (data << 8) | SEVEN_SEGMENT[11]; // "o"
   data = (data << 16) | 0xFFFF; // nothing
   displaySevenSegment(data); // Show on display "no  "
-  setColourRGB(255,0,166);   // Pink colour
+  pixels.fill(pixels.Color(255, 255, 255), 0, 7);
+  pixels.show();
   delay(delayTime);
-
   // Show on display "conn"
   data = 0x00;
   data = (data << 8) | SEVEN_SEGMENT[12]; // "c"
@@ -244,7 +191,6 @@ void displayError(int delayTime = 1000){ // Shows on the seven segment display "
   data = (data << 8) | SEVEN_SEGMENT[10]; // "n"
   data = (data << 8) | SEVEN_SEGMENT[10]; // "n"
   displaySevenSegment(data); // Show on display "conn"
-  setColourRGB(255,213,0);   // Mustard colour
   delay(delayTime);
   displayClear();
 }
@@ -342,14 +288,15 @@ void classifyEvent(String calendar_data) { // Finds the highest priority event, 
 
   // State assignment
   if ( eventColourIndex < tildeIndex && eventColourIndex >= 0){
-    setColourRGBEvent(i); // Change the colour to the event's colour
     STATE = Busy;
+    pixels.fill(pixels.Color(150, 0, 0), 0, 7);
+    pixels.show();
     Serial.println("Event found.");
   } else { // No event found - display green to show it's clear
     displayClear();
-    setColourRGB(0,20,0, 10000); // Dim green colour - attempting to differentiate "no event" from "green event".
-    setColourRGB(0,0,0); // Turns off after 10 seconds
     STATE = Free;
+    pixels.fill(pixels.Color(0, 150, 0), 0, 7);
+    pixels.show();
     Serial.println("No events found.");
   }
 
@@ -374,7 +321,8 @@ void classifyEvent(String calendar_data) { // Finds the highest priority event, 
   if(sToPhoneHomeIndex >= timeIndex ){
     unsigned long newTime = calendar_data.substring(sToPhoneHomeIndex, calendar_data.indexOf(",",sToPhoneHomeIndex)).toInt()*1000 + millis();
     if (newTime < NEXT_UPDATE_TIME){ // Check if the time suggested by the google script is less than the next time we were already planning to update
-      NEXT_UPDATE_TIME = newTime;
+      //NEXT_UPDATE_TIME = newTime;
+      NEXT_UPDATE_TIME = millis() + UPDATE_TIME;
       Serial.println("Next updating in "+String(NEXT_UPDATE_TIME-millis())+" ms.");
     }
   }else{
@@ -391,9 +339,13 @@ void classifyEvent(String calendar_data) { // Finds the highest priority event, 
 
 void setup() { // Main code that runs once, initializes variables.
   Serial.begin(9600);
-  pinMode(PIN_RED, OUTPUT);
-  pinMode(PIN_GREEN, OUTPUT);
-  pinMode(PIN_BLUE, OUTPUT);
+
+  startMillis = millis();
+
+  pixels.begin();
+  pixels.clear();
+  pixels.setBrightness(240);
+  
   pinMode(PIN_DATA, OUTPUT);
   pinMode(PIN_CLOCK, OUTPUT);
   pinMode(PIN_LATCH, OUTPUT);
@@ -401,16 +353,23 @@ void setup() { // Main code that runs once, initializes variables.
   HEARTBEAT = millis();
   STATE = Free;
   
-  setColourRGB(); // Default values turns the LED off
   displayBoot(); // Show "boot" on seven segment display
   
   connectToWifi();
-  rainbow(15); // Startup colours, let us know that we connected successfully
 }
 
 void loop() { // Code that runs continuously on a loop
   yield(); // Let the ESP8266 do background stuff if it needs to
+
+  currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
+  if (currentMillis - startMillis >= period)  //test whether the period has elapsed
+  {
+    getCalendar();
+    classifyEvent(CALENDAR_DATA);
+    startMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
+  }
     
+  //if (millis() > NEXT_UPDATE_TIME) {
   if (millis() > NEXT_UPDATE_TIME) {
     NEXT_UPDATE_TIME = millis() + UPDATE_TIME;
     getCalendar();
@@ -424,9 +383,8 @@ void loop() { // Code that runs continuously on a loop
       if (STATE != Sleep){
         STATE = Sleep; // Run this code only once
         displaySleep(); // Display "SLP" on seven segment display
-        setColourRGB(201,52,235, /*delay=*/3000); // Magenta colour
 
-        displayClear(); setColourRGB(); // Turn off display and LED
+        displayClear();  // Turn off display and LED
         NEXT_UPDATE_TIME = (24 - DAY_END_HOUR + DAY_START_HOUR)*3600*1000; // Don't update until the morning.
         Serial.println("Entering sleep mode.");
       } 
