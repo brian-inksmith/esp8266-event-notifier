@@ -1,4 +1,4 @@
-# esp8266-event-notifier
+# esp8266-event-notifier-neopixel
 This is a fork of the Google Calendar Busy Indicator by fwacer. It connects over WiFi to a calendar, then turns a neopixel strip (or in my case, the neopixel shield for the D1 mini). This is used to display whether a person or a meeting room is free or busy based on their calendar. 
 Eventually the plan is to use the 7segment display to show the next free meeting time.
 
