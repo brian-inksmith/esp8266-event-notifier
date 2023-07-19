@@ -6,7 +6,7 @@ You'll have to configure which pin is being used for the neopixels, and you can 
 
 The following is fwacer's readme content for posterity.
 
-[![Video thumbnail of the ESP8266 event notifier prototype](https://img.youtube.com/vi/q-8Iey-jSQw/0.jpg)](https://www.youtube.com/watch?v=q-8Iey-jSQw)
+Video of the original ESP8266 event notifier prototype (https://www.youtube.com/watch?v=q-8Iey-jSQw)
 
 The underlying code is based on SensorsIOT's implementation of a similar idea: https://github.com/SensorsIot/Reminder-with-Google-Calender
 
