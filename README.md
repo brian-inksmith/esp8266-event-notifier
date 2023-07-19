@@ -1,9 +1,10 @@
 # esp8266-event-notifier
-This is my Google Calendar Busy Indicator. It connects over WiFi to a calendar, then turns the top LED to the colour of the event (Green is "empty" or "free"). This allows the end user to tell if the owner of the calendar is busy and what type of meeting they are in. 
-On the front face, there is a seven-segment display that shows the time that the owner of the calendar is free next. 
-I plan to use this at home, to track when my parent is busy and when they will next be free.
+This is a fork of the Google Calendar Busy Indicator by fwacer. It connects over WiFi to a calendar, then turns a neopixel strip (or in my case, the neopixel shield for the D1 mini). This is used to display whether a person or a meeting room is free or busy based on their calendar. 
+Eventually the plan is to use the 7segment display to show the next free meeting time.
 
-Demo video: https://youtu.be/q-8Iey-jSQw
+You'll have to configure which pin is being used for the neopixels, and you can adjust the refresh timing to your liking.  Otherwise the code is mostly unchanged.
+
+The following is fwacer's readme content for posterity.
 
 [![Video thumbnail of the ESP8266 event notifier prototype](https://img.youtube.com/vi/q-8Iey-jSQw/0.jpg)](https://www.youtube.com/watch?v=q-8Iey-jSQw)
 
@@ -22,4 +23,3 @@ Blog post: https://brycedombrowski.com/2020/05/spring-2020-google-calendar-busy-
   const char* SSID_PASSWORD = "password"; // Your wifi password
   const char *GSCRIPT_ID =  "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; //replace with your secret
   ```
-- Make the circuit! I've included both an Eagle schematic and a PDF of my setup. Feel free to modify it or make your own from scratch.
